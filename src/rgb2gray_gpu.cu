@@ -3,19 +3,7 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/highgui/highgui.hpp>
 #include<cuda_runtime.h>
-
-static inline void _safe_cuda_call(cudaError err, const char* msg, const char* file_name, const int line_number)
-{
-	if(err!=cudaSuccess)
-	{
-		fprintf(stderr,"%s\n\nFile: %s\n\nLine Number: %d\n\nReason: %s\n",msg,file_name,line_number,cudaGetErrorString(err));
-		std::cin.get();
-		exit(EXIT_FAILURE);
-	}
-}
-
-#define SAFE_CALL(call,msg) _safe_cuda_call((call),(msg),__FILE__,__LINE__)
-
+#include "helper_cuda.h"
 
 __global__ void cvrgb_to_gray(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep)
 {
@@ -46,16 +34,20 @@ void rgb2grayscale_gpu(const cv::Mat& input, cv::Mat& output)
 	//Calculate total number of bytes of input and output image
 	const int colorBytes = input.step * input.rows;
 	const int grayBytes = output.step * output.rows;
-
 	unsigned char *d_input, *d_output;
-
+	
+	cudaError_t cudaStatus;	
+	
 	//Allocate device memory
-	SAFE_CALL(cudaMalloc<unsigned char>(&d_input,colorBytes),"CUDA Malloc Failed");
-	SAFE_CALL(cudaMalloc<unsigned char>(&d_output,grayBytes),"CUDA Malloc Failed");
-
+	cudaStatus = cudaMalloc<unsigned char>(&d_input,colorBytes);
+	checkCudaErrors(cudaStatus);	
+	cudaStatus = cudaMalloc<unsigned char>(&d_output,grayBytes);
+	checkCudaErrors(cudaStatus);	
+	
 	//Copy data from OpenCV input image to device memory
-	SAFE_CALL(cudaMemcpy(d_input,input.ptr(),colorBytes,cudaMemcpyHostToDevice),"CUDA Memcpy Host To Device Failed");
-
+	cudaStatus = cudaMemcpy(d_input,input.ptr(),colorBytes,cudaMemcpyHostToDevice);
+	checkCudaErrors(cudaStatus);	
+	
 	//Specify a reasonable block size
 	const dim3 block(16,16);
 
@@ -66,14 +58,19 @@ void rgb2grayscale_gpu(const cv::Mat& input, cv::Mat& output)
 	cvrgb_to_gray<<<grid,block>>>(d_input,d_output,input.cols,input.rows,input.step,output.step);
 
 	//Synchronize to check for any kernel launch errors
-	SAFE_CALL(cudaDeviceSynchronize(),"Kernel Launch Failed");
+	cudaStatus = cudaDeviceSynchronize();
+	checkCudaErrors(cudaStatus);	
 
 	//Copy back data from destination device meory to OpenCV output image
-	SAFE_CALL(cudaMemcpy(output.ptr(),d_output,grayBytes,cudaMemcpyDeviceToHost),"CUDA Memcpy Host To Device Failed");
+	cudaStatus = cudaMemcpy(output.ptr(),d_output,grayBytes,cudaMemcpyDeviceToHost);
+	checkCudaErrors(cudaStatus);	
 
 	//Free the device memory
-	SAFE_CALL(cudaFree(d_input),"CUDA Free Failed");
-	SAFE_CALL(cudaFree(d_output),"CUDA Free Failed");
+	cudaStatus = cudaFree(d_input);
+	checkCudaErrors(cudaStatus);	
+
+	cudaStatus = cudaFree(d_output);
+	checkCudaErrors(cudaStatus);	
 }
 
 
