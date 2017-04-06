@@ -24,7 +24,7 @@ __device__ void sort(float *x, int n_size) {
 }
 
 __global__ void median_filter_2d(float *image_in, float *image_out,
-				int size, int dim2, int dim3, 
+				int size, int dim_2, int dim_3, 
 				int kernel_size_r)
 {
 	// find thread id in global memory organization
@@ -32,18 +32,19 @@ __global__ void median_filter_2d(float *image_in, float *image_out,
 	// if within image limits (max size)
 	if (thread_id < size) {
 		// find x and y indices
-		int x = id % dim3;
-		int y = id / dim3;
-		float xs[11*11];
+		int x = id % dim_3; // dim3 is the size of the row
+		int y = id / dim_3; // equivalently #cols * size
+		float xs[11*11]; // allocate some memory for presort
 		int xs_size = 0;
 		// iterate over image x axis
 		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size; x_iter ++) {
 			// iterate over image y axis
 			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size; y_iter++) {
 				// stay within image block dimensions
-				if (0<=x_iter && x_iter < dim3 && 0 <= y_iter && y_iter < dim2) {
+				if (0<=x_iter && x_iter < dim_3 && 0 <= y_iter && y_iter < dim_2) {
 					// fill up pre-sorted vector
-					xs[xs_size++] = image_in[y_iter * dim3 + x_iter];
+					// image_in[row_offset*row_size + col_offset]
+					xs[xs_size++] = image_in[y_iter * dim_3 + x_iter];
 				}
 			}
 		}
