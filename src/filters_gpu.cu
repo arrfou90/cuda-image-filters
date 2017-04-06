@@ -93,7 +93,14 @@ void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	cudaStatus = cudaMalloc<unsigned char>(&d_input,colorBytes);
 	checkCudaErrors(cudaStatus);	
 	cudaStatus = cudaMalloc<unsigned char>(&d_output,grayBytes);
-	checkCudaErrors(cudaStatus);	
+	checkCudaErrors(cudaStatus);
+
+	//Allocate device memory
+	//cudaStatus = cudaMalloc<unsigned float>(&d_input,colorBytes);
+	//checkCudaErrors(cudaStatus);	
+	//cudaStatus = cudaMalloc<unsigned float>(&d_output,grayBytes);
+	//checkCudaErrors(cudaStatus);
+
 	
 	//Copy data from OpenCV input image to device memory
 	cudaStatus = cudaMemcpy(d_input,input.ptr(),colorBytes,cudaMemcpyHostToDevice);
@@ -107,6 +114,8 @@ void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 
 	//Launch the color conversion kernel
 	cvrgb_to_gray<<<grid,block>>>(d_input,d_output,input.cols,input.rows,input.step,output.step);
+
+	//median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows,input.step,output.step);
 
 	//Synchronize to check for any kernel launch errors
 	cudaStatus = cudaDeviceSynchronize();
