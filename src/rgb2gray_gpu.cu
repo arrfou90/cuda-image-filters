@@ -18,6 +18,29 @@ __device__ void sort(float *x, int n_size) {
 	}	
 }
 
+__global__ void median_filter_2d(float *image_in, float *image_out,
+				int size, int dim2, int dim3, 
+				int kernel_size_r)
+{
+	thread_id = threadIdx.x + (blockDim.x * blockIdx.x);
+	if (thread_id < size) {
+		int x = id % dim3;
+		int y = id / dim3;
+		float xs[11*11];
+		int xs_size = 0;
+		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size; x_iter ++) {
+			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size; y_iter++) {
+				if (0<=x_iter && x_iter < dim3 && 0 <= y_iter && y_iter < dim2) {
+					xs[xs_size++] = image_in[y_iter * dim3 + x_iter];
+				}
+			}
+		}
+		sort(xs,xs_size);
+		image_out[thread_id] = xs[xs_size/2];
+	}
+}
+
+
 __global__ void cvrgb_to_gray(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep)
 {
 	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
