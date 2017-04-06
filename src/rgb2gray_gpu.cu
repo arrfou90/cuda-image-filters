@@ -6,12 +6,17 @@
 #include "helper_cuda.h"
 
 __device__ void sort(float *x, int n_size) {
+	// iterate over reference vector
 	for (int i = 0; i < n_size-1; i++) {
+		// initialize minimum element index
 		int min_idx = i;
+		// compare against rest of the elements
 		for (int j = i + 1; j < n_size; j++) {
+			// comparison
 			if(x[j] < x[min_idx])
 				min_idx = j;
 		}
+		// swap elements with minimum element
 		float temp = x[min_idx];
 		x[min_idx] = x[i];
 		x[i] = temp;
@@ -22,20 +27,29 @@ __global__ void median_filter_2d(float *image_in, float *image_out,
 				int size, int dim2, int dim3, 
 				int kernel_size_r)
 {
+	// find thread id in global memory organization
 	thread_id = threadIdx.x + (blockDim.x * blockIdx.x);
+	// if within image limits (max size)
 	if (thread_id < size) {
+		// find x and y indices
 		int x = id % dim3;
 		int y = id / dim3;
 		float xs[11*11];
 		int xs_size = 0;
+		// iterate over image x axis
 		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size; x_iter ++) {
+			// iterate over image y axis
 			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size; y_iter++) {
+				// stay within image block dimensions
 				if (0<=x_iter && x_iter < dim3 && 0 <= y_iter && y_iter < dim2) {
+					// fill up pre-sorted vector
 					xs[xs_size++] = image_in[y_iter * dim3 + x_iter];
 				}
 			}
 		}
+		// sort the given vector using the device method sort(*x,n)
 		sort(xs,xs_size);
+		// allocate the median of the sorted vector to the pixel at image out
 		image_out[thread_id] = xs[xs_size/2];
 	}
 }
