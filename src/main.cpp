@@ -9,7 +9,7 @@
 #include <ctime>
 #include <sys/time.h>
 
-extern void rgb2grayscale_gpu(const cv::Mat& input, cv::Mat& output);
+extern void filter_wrapper(const cv::Mat& input, cv::Mat& output);
 
 int main()
 {
@@ -24,7 +24,7 @@ int main()
 	}
 
 	// Call Wrapper
-	rgb2grayscale_gpu(input,output);
+	filter_wrapper(input,output);
 
 	cv::imshow("Input Image",input);
 	cv::imshow("Output Image",output);

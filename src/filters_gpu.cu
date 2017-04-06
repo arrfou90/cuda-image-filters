@@ -80,7 +80,7 @@ __global__ void cvrgb_to_gray(unsigned char* input, unsigned char* output, int w
 	}
 }
 
-void rgb2grayscale_gpu(const cv::Mat& input, cv::Mat& output)
+void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 {
 	//Calculate total number of bytes of input and output image
 	const int colorBytes = input.step * input.rows;
