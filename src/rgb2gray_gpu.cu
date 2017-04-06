@@ -5,6 +5,19 @@
 #include<cuda_runtime.h>
 #include "helper_cuda.h"
 
+__device__ void sort(float *x, int n_size) {
+	for (int i = 0; i < n_size-1; i++) {
+		int min_idx = i;
+		for (int j = i + 1; j < n_size; j++) {
+			if(x[j] < x[min_idx])
+				min_idx = j;
+		}
+		float temp = x[min_idx];
+		x[min_idx] = x[i];
+		x[i] = temp;
+	}	
+}
+
 __global__ void cvrgb_to_gray(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep)
 {
 	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
