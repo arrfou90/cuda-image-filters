@@ -15,13 +15,18 @@ int main()
 {
 	// Read input file (image)
 	std::string imagePath = "data/image.png";
-	cv::Mat input = cv::imread(imagePath,CV_LOAD_IMAGE_COLOR);
-	cv::Mat output(input.rows,input.cols,CV_8UC1);
+	cv::Mat input = cv::imread(imagePath);
 	if(input.empty()) {
 		std::cout<<"Could not load image. Check location and try again."<<std::endl;
 		std::cin.get();
 		return -1;
 	}
+
+	cv::Size resize_size;
+	resize_size.width = 480;
+	resize_size.height = 1200;
+	cv::resize(input,input,resize_size);
+	cv::Mat output(input.rows,input.cols,CV_8UC1);
 
 	// Call Wrapper
 	filter_wrapper(input,output);

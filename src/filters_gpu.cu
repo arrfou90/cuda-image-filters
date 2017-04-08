@@ -28,18 +28,18 @@ __global__ void median_filter_2d(float *image_in, float *image_out,
 				int kernel_size_r)
 {
 	// find thread id in global memory organization
-	thread_id = threadIdx.x + (blockDim.x * blockIdx.x);
+	int thread_id = threadIdx.x + (blockDim.x * blockIdx.x);
 	// if within image limits (max size)
 	if (thread_id < size) {
 		// find x and y indices
-		int x = id % dim_3; // dim3 is the size of the row
-		int y = id / dim_3; // equivalently #cols * size
+		int x = thread_id % dim_3; // dim3 is the size of the row
+		int y = thread_id / dim_3; // equivalently #cols * size
 		float xs[11*11]; // allocate some memory for presort
 		int xs_size = 0;
 		// iterate over image x axis
-		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size; x_iter ++) {
+		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size_r; x_iter ++) {
 			// iterate over image y axis
-			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size; y_iter++) {
+			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size_r; y_iter++) {
 				// stay within image block dimensions
 				if (0<=x_iter && x_iter < dim_3 && 0 <= y_iter && y_iter < dim_2) {
 					// fill up pre-sorted vector
