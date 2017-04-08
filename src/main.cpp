@@ -15,7 +15,7 @@ int main()
 {
 	// Read input file (image)
 	std::string imagePath = "data/image.png";
-	cv::Mat input = cv::imread(imagePath);
+	cv::Mat input = cv::imread(imagePath,0);
 	if(input.empty()) {
 		std::cout<<"Could not load image. Check location and try again."<<std::endl;
 		std::cin.get();
