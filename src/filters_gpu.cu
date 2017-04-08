@@ -53,7 +53,7 @@ void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	unsigned char *d_input, *d_output;
 	const int kernel = 5;
 
-	printf("ColorBytes = %d | grayBytes = %d\n",colorBytes,grayBytes);
+	//printf("ColorBytes = %d | grayBytes = %d\n",colorBytes,grayBytes);
 	
 	cudaError_t cudaStatus;	
 	
@@ -72,7 +72,7 @@ void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	const int colwidstep = input.step;
 	const int graywidstep = output.step;
 
-	printf("Color Width Step = %d | Gray Width Step = %d \n",colwidstep,graywidstep);
+	//printf("Color Width Step = %d | Gray Width Step = %d \n",colwidstep,graywidstep);
 
 	median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows,colwidstep,graywidstep,kernel);
 
