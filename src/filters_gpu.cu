@@ -23,51 +23,26 @@ __device__ void sort(float *x, int n_size) {
 	}	
 }
 
-__global__ void median_filter_2d(float *image_in, float *image_out,
-				int size, int dim_2, int dim_3, 
-				int kernel_size_r)
+__global__ void median_filter_2d(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep, int kernel_size_r)
 {
-	// find thread id in global memory organization
-	int thread_id = threadIdx.x + (blockDim.x * blockIdx.x);
-	// if within image limits (max size)
-	if (thread_id < size) {
-		// find x and y indices
-		int x = thread_id % dim_3; // dim3 is the size of the row
-		int y = thread_id / dim_3; // equivalently #cols * size
-		float xs[11*11]; // allocate some memory for presort
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if((x<width) && (y<height))
+	{
+		const int color_tid = y * colorWidthStep + x;
+		float xs[11*11];
 		int xs_size = 0;
-		// iterate over image x axis
+
 		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size_r; x_iter ++) {
-			// iterate over image y axis
 			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size_r; y_iter++) {
-				// stay within image block dimensions
-				if (0<=x_iter && x_iter < dim_3 && 0 <= y_iter && y_iter < dim_2) {
-					// fill up pre-sorted vector
-					// image_in[row_offset*row_size + col_offset]
-					xs[xs_size++] = image_in[y_iter * dim_3 + x_iter];
+				if (0<=x_iter && x_iter < colorWidthStep && 0 <= y_iter && y_iter < height) {
+					xs[xs_size++] = input[y_iter * colorWidthStep + x_iter];
 				}
 			}
 		}
-		// sort the given vector using the device method sort(*x,n)
 		sort(xs,xs_size);
-		// allocate the median of the sorted vector to the pixel at image out
-		image_out[thread_id] = xs[xs_size/2];
-	}
-}
-
-
-__global__ void cvrgb_to_gray(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep)
-{
-	const int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-	const int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-
-	//Only valid threads perform memory I/O
-	if((xIndex<width) && (yIndex<height))
-	{
-		const int color_tid = yIndex * colorWidthStep + xIndex;
-		const int gray_tid  = yIndex * grayWidthStep + xIndex;
-		const float gray = input[color_tid];
-		output[gray_tid] = static_cast<unsigned char>(gray);
+		output[color_tid] = static_cast<unsigned char>(xs[xs_size/2]);
 	}
 }
 
@@ -76,6 +51,7 @@ void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	const int colorBytes = input.step * input.rows;
 	const int grayBytes = output.step * output.rows;
 	unsigned char *d_input, *d_output;
+	const int kernel = 5;
 
 	printf("ColorBytes = %d | grayBytes = %d\n",colorBytes,grayBytes);
 	
@@ -97,9 +73,8 @@ void filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	const int graywidstep = output.step;
 
 	printf("Color Width Step = %d | Gray Width Step = %d \n",colwidstep,graywidstep);
-	cvrgb_to_gray<<<grid,block>>>(d_input,d_output,input.cols,input.rows,colwidstep,graywidstep);
 
-	//median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows,input.step,output.step);
+	median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows,colwidstep,graywidstep,kernel);
 
 	cudaStatus = cudaDeviceSynchronize();
 	checkCudaErrors(cudaStatus);	
