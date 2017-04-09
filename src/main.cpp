@@ -26,23 +26,24 @@ int main()
 	resize_size.width = 480;
 	resize_size.height = 1200;
 	cv::resize(input,input,resize_size);
-	cv::Mat output(input.rows,input.cols,CV_8UC1);
+	cv::Mat output_gpu(input.rows,input.cols,CV_8UC1);
+	cv::Mat output_cpu(input.rows,input.cols,CV_8UC1);	
 
 	clock_t gpu_s = clock();
-	filter_wrapper(input,output);
+	filter_wrapper(input,output_gpu);
 	clock_t gpu_e = clock();
 	double gpu_time = (double(gpu_e - gpu_s) * 1000)/CLOCKS_PER_SEC;
 	std::cout << "GPU Accelerated Median Filter took " << gpu_time << " ms.\n";	
 	
 	clock_t cpu_s = clock();
-	cv::medianBlur(input,output,5);
+	cv::medianBlur(input,output_cpu,9);
 	clock_t cpu_e = clock();
 	double cpu_time = (double(cpu_e - cpu_s) * 1000)/CLOCKS_PER_SEC;
 	std::cout << "CPU Accelerated Median Filter took " << cpu_time << " ms.\n";	
 
-	//cv::imshow("Input Image",input);
-	//cv::imshow("Output Image",output);
-	//cv::waitKey();
+	cv::imshow("Output Image - GPU",output_gpu);
+	cv::imshow("Output Image - CPU",output_cpu);
+	cv::waitKey();
 
 	return 0;
 }
