@@ -9,7 +9,7 @@
 #include <ctime>
 #include <sys/time.h>
 
-extern void filter_wrapper(const cv::Mat& input, cv::Mat& output);
+extern void median_filter_wrapper(const cv::Mat& input, cv::Mat& output);
 
 int main()
 {
@@ -29,8 +29,9 @@ int main()
 	cv::Mat output_gpu(input.rows,input.cols,CV_8UC1);
 	cv::Mat output_cpu(input.rows,input.cols,CV_8UC1);	
 
+	// --------------- MEDIAN FILTER ---------------
 	clock_t gpu_s = clock();
-	filter_wrapper(input,output_gpu);
+	median_filter_wrapper(input,output_gpu);
 	clock_t gpu_e = clock();
 	double gpu_time = (double(gpu_e - gpu_s) * 1000)/CLOCKS_PER_SEC;
 	std::cout << "GPU Accelerated Median Filter took " << gpu_time << " ms.\n";	

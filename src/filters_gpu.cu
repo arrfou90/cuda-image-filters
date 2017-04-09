@@ -6,21 +6,17 @@
 #include "helper_cuda.h"
 
 const int BLOCKDIM = 32;
+const int MAX_WINDOW = 11;
 __device__ const int FILTER_SIZE = 9;
 __device__ const int FILTER_HALFSIZE = FILTER_SIZE >> 1;
 
 __device__ void sort(float *x, int n_size) {
-	// iterate over reference vector
 	for (int i = 0; i < n_size-1; i++) {
-		// initialize minimum element index
 		int min_idx = i;
-		// compare against rest of the elements
 		for (int j = i + 1; j < n_size; j++) {
-			// comparison
 			if(x[j] < x[min_idx])
 				min_idx = j;
 		}
-		// swap elements with minimum element
 		float temp = x[min_idx];
 		x[min_idx] = x[i];
 		x[i] = temp;
@@ -32,21 +28,35 @@ __device__ int index(int x, int y, int width)
 	return (y * width) + x;
 }
 
-__global__ void median_filter_2d(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep, int kernel_size_r)
+__device__ int clamp(int value, int bound) 
+{
+	if (value < 0) {
+		return 1;
+	}
+	if (value < bound) {
+		return value;
+	}
+	return bound - 1;
+}
+
+__global__ void median_filter_2d(unsigned char* input, unsigned char* output, int width, int height)
 {
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
 	const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if((x<width) && (y<height))
 	{
-		const int color_tid = y * colorWidthStep + x;
+		const int color_tid = y * width + x;
 		float xs[11*11];
 		int xs_size = 0;
 
-		for (int x_iter = x - kernel_size_r; x_iter <= x + kernel_size_r; x_iter ++) {
-			for (int y_iter = y - kernel_size_r; y_iter <= y + kernel_size_r; y_iter++) {
-				if (0<=x_iter && x_iter < colorWidthStep && 0 <= y_iter && y_iter < height) {
-					xs[xs_size++] = input[y_iter * colorWidthStep + x_iter];
+		for (int x_iter = x - FILTER_HALFSIZE; x_iter <= x + FILTER_HALFSIZE; x_iter ++)
+		 {
+			for (int y_iter = y - FILTER_HALFSIZE; y_iter <= y + FILTER_HALFSIZE; y_iter++)
+			 {
+				if (0<=x_iter && x_iter < width && 0 <= y_iter && y_iter < height)
+				{
+					xs[xs_size++] = input[y_iter * width + x_iter];
 				}
 			}
 		}
@@ -55,7 +65,7 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 	}
 }
 
-__global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output, int width, int height, int colorWidthStep, int grayWidthStep, int kernel_size_r)
+__global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output, int width, int height)
 {
 	__shared__ int sharedPixels[BLOCKDIM + FILTER_SIZE][BLOCKDIM + FILTER_SIZE];
 	
@@ -68,42 +78,42 @@ __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output,
 	int yBlockLimit_min = FILTER_HALFSIZE;
 
 	if (threadIdx.x > xBlockLimit_max && threadIdx.y > yBlockLimit_max) {
-		int i = index(x + FILTER_HALFSIZE, y + FILTER_HALFSIZE, width);
+		int i = index(clamp(x + FILTER_HALFSIZE,width), clamp(y + FILTER_HALFSIZE,height), width);
 	    	unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x + 2*FILTER_HALFSIZE][threadIdx.y + 2*FILTER_HALFSIZE] = pixel;
 	}
 	if (threadIdx.x > xBlockLimit_max && threadIdx.y < yBlockLimit_min) {
-		int i = index(x + FILTER_HALFSIZE, y - FILTER_HALFSIZE, width);
+		int i = index(clamp(x + FILTER_HALFSIZE,width), clamp(y - FILTER_HALFSIZE,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x + 2*FILTER_HALFSIZE][threadIdx.y] = pixel;
 	}
 	if (threadIdx.x < xBlockLimit_min && threadIdx.y > yBlockLimit_max) {
-		int i = index(x - FILTER_HALFSIZE, y + FILTER_HALFSIZE, width);
+		int i = index(clamp(x - FILTER_HALFSIZE,width), clamp(y + FILTER_HALFSIZE,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x][threadIdx.y + 2*FILTER_HALFSIZE] = pixel;
 	}
 	if (threadIdx.x < xBlockLimit_min && threadIdx.y < yBlockLimit_min) {
-		int i = index(x - FILTER_HALFSIZE, y - FILTER_HALFSIZE, width);
+		int i = index(clamp(x - FILTER_HALFSIZE,width), clamp(y - FILTER_HALFSIZE,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x][threadIdx.y] = pixel;
 	}
 	if (threadIdx.x < xBlockLimit_min) {
-		int i = index(x - FILTER_HALFSIZE, y, width);
+		int i = index(clamp(x - FILTER_HALFSIZE,width), clamp(y,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x][threadIdx.y + FILTER_HALFSIZE] = pixel;
 	}
 	if (threadIdx.x > xBlockLimit_max) {
-		int i = index(x + FILTER_HALFSIZE, y, width);
+		int i = index(clamp(x + FILTER_HALFSIZE,width), clamp(y,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x + 2*FILTER_HALFSIZE][threadIdx.y + FILTER_HALFSIZE] = pixel;
 	}
 	if (threadIdx.y < yBlockLimit_min) {
-		int i = index(x, y - FILTER_HALFSIZE, width);
+		int i = index(clamp(x,width), clamp(y - FILTER_HALFSIZE,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x + FILTER_HALFSIZE][threadIdx.y] = pixel;
 	}
 	if (threadIdx.y > yBlockLimit_max) {
-		int i = index(x, y + FILTER_HALFSIZE, width);
+		int i = index(clamp(x,width), clamp(y + FILTER_HALFSIZE,height), width);
 		unsigned int pixel = input[i];
 		sharedPixels[threadIdx.x + FILTER_HALFSIZE][threadIdx.y + 2*FILTER_HALFSIZE] = pixel;
 	}
@@ -115,13 +125,16 @@ __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output,
 
 	if((x<width) && (y<height))
 	{
-		const int color_tid = y * colorWidthStep + x;
-		float xs[11*11];
+		const int color_tid = y * width + x;
+		float xs[MAX_WINDOW*MAX_WINDOW];
 		int xs_size = 0;
 
-		for (int x_iter = 0; x_iter < kernel_size_r; x_iter ++) {
-			for (int y_iter = 0; y_iter < kernel_size_r; y_iter++) {
-				if (0<=x_iter && x_iter < colorWidthStep && 0 <= y_iter && y_iter < height) {
+		for (int x_iter = 0; x_iter < FILTER_SIZE; x_iter ++) 
+		{
+			for (int y_iter = 0; y_iter < FILTER_SIZE; y_iter++) 
+			{
+				if (0<=x_iter && x_iter < width && 0 <= y_iter && y_iter < height) 
+				{
 					xs[xs_size++] = sharedPixels[threadIdx.x + x_iter][threadIdx.y + y_iter];
 				}
 			}
@@ -131,39 +144,30 @@ __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output,
 	}
 }
 
-void filter_wrapper(const cv::Mat& input, cv::Mat& output)
+void median_filter_wrapper(const cv::Mat& input, cv::Mat& output)
 {
-	const int colorBytes = input.step * input.rows;
-	const int grayBytes = output.step * output.rows;
 	unsigned char *d_input, *d_output;
-	const int kernel = 5;
 
-	//printf("ColorBytes = %d | grayBytes = %d\n",colorBytes,grayBytes);
 	
 	cudaError_t cudaStatus;	
 	
-	cudaStatus = cudaMalloc<unsigned char>(&d_input,colorBytes);
+	cudaStatus = cudaMalloc<unsigned char>(&d_input,input.rows*input.cols);
 	checkCudaErrors(cudaStatus);	
-	cudaStatus = cudaMalloc<unsigned char>(&d_output,grayBytes);
+	cudaStatus = cudaMalloc<unsigned char>(&d_output,output.rows*output.cols);
 	checkCudaErrors(cudaStatus);
 
-	cudaStatus = cudaMemcpy(d_input,input.ptr(),colorBytes,cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(d_input,input.ptr(),input.rows*input.cols,cudaMemcpyHostToDevice);
 	checkCudaErrors(cudaStatus);	
 	
 	const dim3 block(BLOCKDIM,BLOCKDIM);
-	const dim3 grid(input.cols / BLOCKDIM, input.rows / BLOCKDIM);
+	const dim3 grid(input.cols/BLOCKDIM, input.rows/BLOCKDIM);
 
-	const int colwidstep = input.step;
-	const int graywidstep = output.step;
-
-	//printf("Color Width Step = %d | Gray Width Step = %d \n",colwidstep,graywidstep);
-
-	median_filter_2d_sm<<<grid,block>>>(d_input,d_output,input.cols,input.rows,colwidstep,graywidstep,kernel);
+	median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows);
 
 	cudaStatus = cudaDeviceSynchronize();
 	checkCudaErrors(cudaStatus);	
 
-	cudaStatus = cudaMemcpy(output.ptr(),d_output,grayBytes,cudaMemcpyDeviceToHost);
+	cudaStatus = cudaMemcpy(output.ptr(),d_output,output.rows*output.cols,cudaMemcpyDeviceToHost);
 	checkCudaErrors(cudaStatus);	
 
 	cudaStatus = cudaFree(d_input);
