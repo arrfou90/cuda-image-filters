@@ -59,7 +59,7 @@ int main()
 	running_sum = 0.0;
 	for (int ctr = 0; ctr < attempts; ctr++) {
 		clock_t gpu_bs = clock();
-		median_filter_wrapper(input,output_gpu);
+		bilateral_filter_wrapper(input,output_gpu);
 		clock_t gpu_be = clock();
 		if (ctr > 0)
 		    running_sum = running_sum + (double(gpu_be-gpu_bs)*1000)/CLOCKS_PER_SEC;
