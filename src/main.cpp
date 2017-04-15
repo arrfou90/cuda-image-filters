@@ -10,6 +10,7 @@
 #include <sys/time.h>
 
 extern void median_filter_wrapper(const cv::Mat& input, cv::Mat& output);
+extern void bilateral_filter_wrapper(const cv::Mat& input, cv::Mat& output);
 
 int main()
 {
@@ -54,8 +55,8 @@ int main()
 	cv::imshow("(MF) Output Image - GPU",output_gpu);
 	cv::imshow("(MF) Output Image - CPU",output_cpu);
 
-	running_sum = 0.0;
 	// ------------- BILATERAL FILTER --------------
+	running_sum = 0.0;
 	for (int ctr = 0; ctr < attempts; ctr++) {
 		clock_t gpu_bs = clock();
 		median_filter_wrapper(input,output_gpu);

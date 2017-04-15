@@ -47,7 +47,7 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 	if((x<width) && (y<height))
 	{
 		const int color_tid = y * width + x;
-		float xs[11*11];
+		float xs[MAX_WINDOW*MAX_WINDOW];
 		int xs_size = 0;
 
 		for (int x_iter = x - FILTER_HALFSIZE; x_iter <= x + FILTER_HALFSIZE; x_iter ++)
