@@ -22,6 +22,9 @@ int main()
 		return -1;
 	}
 
+	double running_sum = 0.0;
+	int attempts = 10;
+
 	cv::Size resize_size;
 	resize_size.width = 480;
 	resize_size.height = 1200;
@@ -30,21 +33,51 @@ int main()
 	cv::Mat output_cpu(input.rows,input.cols,CV_8UC1);	
 
 	// --------------- MEDIAN FILTER ---------------
-	clock_t gpu_s = clock();
-	median_filter_wrapper(input,output_gpu);
-	clock_t gpu_e = clock();
-	double gpu_time = (double(gpu_e - gpu_s) * 1000)/CLOCKS_PER_SEC;
-	std::cout << "GPU Accelerated Median Filter took " << gpu_time << " ms.\n";	
-	
-	clock_t cpu_s = clock();
-	cv::medianBlur(input,output_cpu,9);
-	clock_t cpu_e = clock();
-	double cpu_time = (double(cpu_e - cpu_s) * 1000)/CLOCKS_PER_SEC;
-	std::cout << "CPU Accelerated Median Filter took " << cpu_time << " ms.\n";	
+        for (int ctr = 0; ctr < attempts; ctr++) {
+		clock_t gpu_s = clock();
+		median_filter_wrapper(input,output_gpu);
+		clock_t gpu_e = clock();
+		if (ctr > 0)
+		    running_sum = running_sum + (double(gpu_e-gpu_s)*1000)/CLOCKS_PER_SEC;
+	}
+	std::cout << "GPU Accelerated Median Filter took " << running_sum/(attempts-1) << " ms.\n";	
+	running_sum = 0.0;
+	for (int ctr = 0; ctr < attempts; ctr++) {
+		clock_t cpu_s = clock();
+		cv::medianBlur(input,output_cpu,9);
+		clock_t cpu_e = clock();
+		if (ctr > 0)
+		    running_sum = running_sum + (double(cpu_e-cpu_s)*1000)/CLOCKS_PER_SEC;
+	}
+	std::cout << "CPU Accelerated Median Filter took " << running_sum/(attempts-1) << " ms.\n";	
 
-	cv::imshow("Output Image - GPU",output_gpu);
-	cv::imshow("Output Image - CPU",output_cpu);
+	cv::imshow("(MF) Output Image - GPU",output_gpu);
+	cv::imshow("(MF) Output Image - CPU",output_cpu);
+
+	running_sum = 0.0;
+	// ------------- BILATERAL FILTER --------------
+	for (int ctr = 0; ctr < attempts; ctr++) {
+		clock_t gpu_bs = clock();
+		median_filter_wrapper(input,output_gpu);
+		clock_t gpu_be = clock();
+		if (ctr > 0)
+		    running_sum = running_sum + (double(gpu_be-gpu_bs)*1000)/CLOCKS_PER_SEC;
+	}
+	std::cout << "GPU Accelerated Bilateral Filter took " << running_sum/(attempts-1) << " ms.\n";	
+	running_sum = 0.0;	
+	for (int ctr = 0; ctr < attempts; ctr++) {
+		clock_t cpu_bs = clock();
+		cv::bilateralFilter(input,output_cpu,9,50,50);
+		clock_t cpu_be = clock();
+		if (ctr > 0)
+		    running_sum = running_sum + (double(cpu_be-cpu_bs)*1000)/CLOCKS_PER_SEC;
+	}
+	std::cout << "CPU Accelerated Bilateral Filter took " << running_sum/(attempts-1) << " ms.\n";	
+
+	cv::imshow("(BF) Output Image - GPU",output_gpu);
+	cv::imshow("(BF) Output Image - CPU",output_cpu);
 	cv::waitKey();
+
 
 	return 0;
 }
