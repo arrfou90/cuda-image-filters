@@ -5,50 +5,44 @@
 #include <cuda_runtime.h>
 #include "helper_cuda.h"
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/sort.h>
-#include <thrust/copy.h>
-#include <thrust/sequence.h>
-#include <thrust/random.h>
-#include <thrust/generate.h>
-#include <thrust/detail/type_traits.h>
-
 const int BLOCKDIM = 32;
 const int MAX_WINDOW = 11;
 __device__ const int FILTER_SIZE = 9;
 __device__ const int FILTER_HALFSIZE = FILTER_SIZE >> 1;
 
-__device__ void sort_quick(float *x, int left, int right) {
-      int i = left, j = right;
-      float tmp;
-      float pivot = x[(left + right) / 2];
-      while (i <= j) {
+__device__ void sort_quick(float *x, int left_idx, int right_idx) 
+{
+      int i = left_idx, j = right_idx;
+      float pivot = x[(left_idx + right_idx) / 2];
+      while (i <= j) 
+      {
             while (x[i] < pivot)
                   i++;
             while (x[j] > pivot)
                   j--;
             if (i <= j) {
-                  tmp = x[i];
+		  float temp;
+                  temp = x[i];
                   x[i] = x[j];
-                  x[j] = tmp;
+                  x[j] = temp;
                   i++;
                   j--;
             }
       };
-      if (left < j)
-            sort_quick(x, left, j);
-      if (i < right)
-            sort_quick(x, i, right);
+      if (left_idx < j)
+            sort_quick(x, left_idx, j);
+      if (i < right_idx)
+            sort_quick(x, i, right_idx);
 }
 
-
-
-
-__device__ void sort_bubble(float *x, int n_size) {
-	for (int i = 0; i < n_size - 1; i++) {
-		for(int j = 0; j < n_size - i - 1; j++) {
-			if (x[j] > x[j+1]) {
+__device__ void sort_bubble(float *x, int n_size) 
+{
+	for (int i = 0; i < n_size - 1; i++) 
+	{
+		for(int j = 0; j < n_size - i - 1; j++) 
+		{
+			if (x[j] > x[j+1]) 
+			{
 				float temp = x[j];
 				x[j] = x[j+1];
 				x[j+1] = temp;
@@ -57,10 +51,13 @@ __device__ void sort_bubble(float *x, int n_size) {
 	}
 }
 
-__device__ void sort_linear(float *x, int n_size) {
-	for (int i = 0; i < n_size-1; i++) {
+__device__ void sort_linear(float *x, int n_size) 
+{
+	for (int i = 0; i < n_size-1; i++) 
+	{
 		int min_idx = i;
-		for (int j = i + 1; j < n_size; j++) {
+		for (int j = i + 1; j < n_size; j++) 
+		{
 			if(x[j] < x[min_idx])
 				min_idx = j;
 		}
@@ -69,8 +66,6 @@ __device__ void sort_linear(float *x, int n_size) {
 		x[i] = temp;
 	}
 }
-
-
 
 
 __device__ int index(int x, int y, int width) 
@@ -96,7 +91,7 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 
 	if((x<width) && (y<height))
 	{
-		const int color_tid = y * width + x;
+		const int color_tid = index(x,y,width);
 		float xs[MAX_WINDOW*MAX_WINDOW];
 		int xs_size = 0;
 
@@ -106,7 +101,7 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 			 {
 				if (0<=x_iter && x_iter < width && 0 <= y_iter && y_iter < height)
 				{
-					xs[xs_size++] = input[y_iter * width + x_iter];
+					xs[xs_size++] = input[index(x_iter,y_iter,width)];
 				}
 			}
 		}
