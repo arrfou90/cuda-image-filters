@@ -5,12 +5,59 @@
 #include <cuda_runtime.h>
 #include "helper_cuda.h"
 
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+#include <thrust/sort.h>
+#include <thrust/copy.h>
+#include <thrust/sequence.h>
+#include <thrust/random.h>
+#include <thrust/generate.h>
+#include <thrust/detail/type_traits.h>
+
 const int BLOCKDIM = 32;
 const int MAX_WINDOW = 11;
 __device__ const int FILTER_SIZE = 9;
 __device__ const int FILTER_HALFSIZE = FILTER_SIZE >> 1;
 
-__device__ void sort(float *x, int n_size) {
+__device__ void sort_quick(float *x, int left, int right) {
+      int i = left, j = right;
+      float tmp;
+      float pivot = x[(left + right) / 2];
+      while (i <= j) {
+            while (x[i] < pivot)
+                  i++;
+            while (x[j] > pivot)
+                  j--;
+            if (i <= j) {
+                  tmp = x[i];
+                  x[i] = x[j];
+                  x[j] = tmp;
+                  i++;
+                  j--;
+            }
+      };
+      if (left < j)
+            sort_quick(x, left, j);
+      if (i < right)
+            sort_quick(x, i, right);
+}
+
+
+
+
+__device__ void sort_bubble(float *x, int n_size) {
+	for (int i = 0; i < n_size - 1; i++) {
+		for(int j = 0; j < n_size - i - 1; j++) {
+			if (x[j] > x[j+1]) {
+				float temp = x[j];
+				x[j] = x[j+1];
+				x[j+1] = temp;
+			}
+		}
+	}
+}
+
+__device__ void sort_linear(float *x, int n_size) {
 	for (int i = 0; i < n_size-1; i++) {
 		int min_idx = i;
 		for (int j = i + 1; j < n_size; j++) {
@@ -20,8 +67,11 @@ __device__ void sort(float *x, int n_size) {
 		float temp = x[min_idx];
 		x[min_idx] = x[i];
 		x[i] = temp;
-	}	
+	}
 }
+
+
+
 
 __device__ int index(int x, int y, int width) 
 {
@@ -60,10 +110,14 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 				}
 			}
 		}
-		sort(xs,xs_size);
-		output[color_tid] = static_cast<unsigned char>(xs[xs_size/2]);
+		sort_bubble(xs,xs_size);
+		//sort_linear(xs,xs_size);
+		//sort_quick(xs,0,xs_size);
+		output[color_tid] = xs[xs_size/2];
 	}
 }
+
+/*
 
 __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output, int width, int height)
 {
@@ -139,10 +193,11 @@ __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output,
 				}
 			}
 		}
-		sort(xs,xs_size);
+		sort_vec(xs,xs_size);
 		output[color_tid] = static_cast<unsigned char>(xs[xs_size/2]);
 	}
 }
+*/
 
 void median_filter_wrapper(const cv::Mat& input, cv::Mat& output)
 {
