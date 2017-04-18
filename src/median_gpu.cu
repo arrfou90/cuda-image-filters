@@ -94,7 +94,6 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 		const int color_tid = index(x,y,width);
 		float xs[MAX_WINDOW*MAX_WINDOW];
 		int xs_size = 0;
-
 		for (int x_iter = x - FILTER_HALFSIZE; x_iter <= x + FILTER_HALFSIZE; x_iter ++)
 		 {
 			for (int y_iter = y - FILTER_HALFSIZE; y_iter <= y + FILTER_HALFSIZE; y_iter++)
