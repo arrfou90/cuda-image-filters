@@ -92,26 +92,24 @@ __global__ void median_filter_2d(unsigned char* input, unsigned char* output, in
 	if((x<width) && (y<height))
 	{
 		const int color_tid = index(x,y,width);
-		float xs[MAX_WINDOW*MAX_WINDOW];
-		int xs_size = 0;
+		float windowMedian[MAX_WINDOW*MAX_WINDOW];
+		int windowElements = 0;
 		for (int x_iter = x - FILTER_HALFSIZE; x_iter <= x + FILTER_HALFSIZE; x_iter ++)
 		 {
 			for (int y_iter = y - FILTER_HALFSIZE; y_iter <= y + FILTER_HALFSIZE; y_iter++)
 			 {
 				if (0<=x_iter && x_iter < width && 0 <= y_iter && y_iter < height)
 				{
-					xs[xs_size++] = input[index(x_iter,y_iter,width)];
+					windowMedian[windowElements++] = input[index(x_iter,y_iter,width)];
 				}
 			}
 		}
-		sort_bubble(xs,xs_size);
-		//sort_linear(xs,xs_size);
-		//sort_quick(xs,0,xs_size);
-		output[color_tid] = xs[xs_size/2];
+		sort_bubble(windowMedian,windowElements);
+		//sort_linear(windowMedian,windowElements);
+		//sort_quick(windowMedian,0,windowElements);
+		output[color_tid] = windowMedian[windowElements/2];
 	}
 }
-
-/*
 
 __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output, int width, int height)
 {
@@ -174,8 +172,8 @@ __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output,
 	if((x<width) && (y<height))
 	{
 		const int color_tid = y * width + x;
-		float xs[MAX_WINDOW*MAX_WINDOW];
-		int xs_size = 0;
+		float windowMedian[MAX_WINDOW*MAX_WINDOW];
+		int windowElements = 0;
 
 		for (int x_iter = 0; x_iter < FILTER_SIZE; x_iter ++) 
 		{
@@ -183,20 +181,21 @@ __global__ void median_filter_2d_sm(unsigned char* input, unsigned char* output,
 			{
 				if (0<=x_iter && x_iter < width && 0 <= y_iter && y_iter < height) 
 				{
-					xs[xs_size++] = sharedPixels[threadIdx.x + x_iter][threadIdx.y + y_iter];
+					windowMedian[windowElements++] = sharedPixels[threadIdx.x + x_iter][threadIdx.y + y_iter];
 				}
 			}
 		}
-		sort_vec(xs,xs_size);
-		output[color_tid] = static_cast<unsigned char>(xs[xs_size/2]);
+		sort_bubble(windowMedian,windowElements);
+		//sort_linear(windowMedian,windowElements);
+		//sort_quick(windowMedian,0,windowElements);
+		output[color_tid] = windowMedian[windowElements/2];
 	}
 }
-*/
+
 
 void median_filter_wrapper(const cv::Mat& input, cv::Mat& output)
 {
 	unsigned char *d_input, *d_output;
-
 	
 	cudaError_t cudaStatus;	
 	
@@ -211,7 +210,7 @@ void median_filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	const dim3 block(BLOCKDIM,BLOCKDIM);
 	const dim3 grid(input.cols/BLOCKDIM, input.rows/BLOCKDIM);
 
-	median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows);
+	median_filter_2d_sm<<<grid,block>>>(d_input,d_output,input.cols,input.rows);
 
 	cudaStatus = cudaDeviceSynchronize();
 	checkCudaErrors(cudaStatus);	

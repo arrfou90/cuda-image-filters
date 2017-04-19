@@ -92,23 +92,23 @@ __global__ void bilateral_filter_sm(unsigned char* input, unsigned char* output,
 
 	if((x<width) && (y<height))
 	{
-		float sum = 0;
-		float cnt = 0;
+		float running_total = 0;
+		float norm_factor = 0;
 		const int offset = y * width + x;
-		for (int xctr= 0; xctr< FILTER_SIZE; xctr++) 
+		for (int xctr = 0; xctr < FILTER_SIZE; xctr++) 
 		{
-			for (int yctr= 0; yctr< FILTER_SIZE; yctr++) 
+			for (int yctr = 0; yctr < FILTER_SIZE; yctr++) 
 			{
-				float color_diff = sharedPixels[threadIdx.x + xctr][threadIdx.y + yctr] - sharedPixels[threadIdx.x][threadIdx.y];
+				float intensity_change = sharedPixels[threadIdx.x + xctr][threadIdx.y + yctr] - sharedPixels[threadIdx.x][threadIdx.y];
 				float w1 = exp(-((xctr-FILTER_HALFSIZE) * (xctr-FILTER_HALFSIZE) + 
 						 (yctr-FILTER_HALFSIZE) * (yctr-FILTER_HALFSIZE)) / 
 						(2 * sigma1 * sigma1));
-				float w2 = exp(-(color_diff * color_diff) / (2 * sigma2 * sigma2));
-				sum += sharedPixels[threadIdx.x + xctr][threadIdx.y + yctr] * w1 * w2;
-				cnt += w1 * w2;
+				float w2 = exp(-(intensity_change * intensity_change) / (2 * sigma2 * sigma2));
+				running_total += sharedPixels[threadIdx.x + xctr][threadIdx.y + yctr] * w1 * w2;
+				norm_factor += w1 * w2;
 			}
 		}
-		output[offset] = sum / cnt;
+		output[offset] = running_total / norm_factor;
 	}
 }
 
@@ -120,12 +120,12 @@ __global__ void bilateral_filter_2d(unsigned char* input, unsigned char* output,
 
 	if((x<width) && (y<height))
 	{
-		float sum = 0;
-		float cnt = 0;
+		float running_total = 0;
+		float norm_factor = 0;
 		const int offset = y * width + x;
-		for (int xctr= -FILTER_HALFSIZE; xctr<= FILTER_HALFSIZE; xctr++) 
+		for (int xctr = -FILTER_HALFSIZE; xctr <= FILTER_HALFSIZE; xctr++) 
 		{
-			for (int yctr= -FILTER_HALFSIZE; yctr<= FILTER_HALFSIZE; yctr++) 
+			for (int yctr = -FILTER_HALFSIZE; yctr <= FILTER_HALFSIZE; yctr++) 
 			{
 				int y_iter = y + xctr;
 				int x_iter = x + yctr;
@@ -133,45 +133,45 @@ __global__ void bilateral_filter_2d(unsigned char* input, unsigned char* output,
 				if (y_iter < 0) y_iter = -y_iter;
 				if (x_iter > width-1) x_iter = width-1-xctr;
 				if (y_iter > height-1) y_iter = height-1-yctr;
-				float color_diff = input[y_iter * width + x_iter] - input[y * width + x];
-				float w1 = exp(-(xctr* xctr+ yctr* yctr) / (2 * sigma1 * sigma1));
-				float w2 = exp(-(color_diff * color_diff) / (2 * sigma2 * sigma2));
-				sum += input[y_iter * width + x_iter] * w1 * w2;
-				cnt += w1 * w2;
+				float intensity_change = input[y_iter * width + x_iter] - input[y * width + x];
+				float w1 = exp(-(xctr * xctr + yctr * yctr) / (2 * sigma1 * sigma1));
+				float w2 = exp(-(intensity_change * intensity_change) / (2 * sigma2 * sigma2));
+				running_total += input[y_iter * width + x_iter] * w1 * w2;
+				norm_factor += w1 * w2;
 			}
 		}
-		output[offset] = sum / cnt;
+		output[offset] = running_total / norm_factor;
 	}
 }
 
 
-__global__ void bilateral_filter_2d_attempt1(unsigned char* input, unsigned char* output, int width, int height)
+__global__ void bilateral_filter_2d_unoptimized(unsigned char* input, unsigned char* output, int width, int height)
 {
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
 	const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if((x<width) && (y<height))
 	{
-		float sum = 0;
-		float cnt = 0;
+		float running_total = 0;
+		float norm_factor = 0;
 		const int offset = y * width + x;
-		for (int xctr= -FILTER_HALFSIZE; xctr<= FILTER_HALFSIZE; xctr++) 
+		for (int xctr = -FILTER_HALFSIZE; xctr <= FILTER_HALFSIZE; xctr++) 
 		{
-			for (int yctr= -FILTER_HALFSIZE; yctr<= FILTER_HALFSIZE; yctr++) 
+			for (int yctr = -FILTER_HALFSIZE; yctr <= FILTER_HALFSIZE; yctr++) 
 			{
 				int y_iter = y + xctr;
 				int x_iter = x + yctr;
 				if (0 <= x_iter && x_iter < width && 0 <= y_iter && y_iter < height) 
 				{
-					float color_diff = input[y_iter * width + x_iter] - input[y * width + x];
-					float v1 = exp(-(xctr* xctr+ yctr* yctr) / (2 * sigma1 * sigma1));
-					float v2 = exp(-(color_diff * color_diff) / (2 * sigma2 * sigma2));
-					sum += input[y_iter * width + x_iter] * v1 * v2;
-					cnt += v1 * v2;
+					float intensity_change = input[y_iter * width + x_iter] - input[y * width + x];
+					float v1 = exp(-(xctr * xctr + yctr * yctr) / (2 * sigma1 * sigma1));
+					float v2 = exp(-(intensity_change * intensity_change) / (2 * sigma2 * sigma2));
+					running_total += input[y_iter * width + x_iter] * v1 * v2;
+					norm_factor += v1 * v2;
 				}
 			}
 		}
-		output[offset] = sum / cnt;
+		output[offset] = running_total / norm_factor;
 	}
 }
 
