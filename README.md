@@ -1,4 +1,4 @@
-# Cuda Image Filters on NVIDIA TX-2 & NVIDIA GTX1070
+# CUDA Image Filters on NVIDIA TX-2 & NVIDIA GTX1070
 Implementation of GPU accelerated Median Filter and Bilateral Filter for Stereo Vision using CUDA and OpenCV for CIS601 - Special Topics in Computer Architecture : GPGPU Programming
 
 To use this repository, make sure you have the following components installed:
@@ -23,9 +23,11 @@ To run this code:
 
 # Results
 
-Window Size for both filters is 9
-Sigma1 for Bilateral filter is 50px
-Sigma2 for Bilateral filter is 50px
+*Window Size* for both filters is **9**
+
+*Sigma1* for Bilateral filter is **50px**
+
+*Sigma2* for Bilateral filter is **50px**
 
 ## Median Filter
 
