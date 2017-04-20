@@ -15,7 +15,7 @@ extern void bilateral_filter_wrapper(const cv::Mat& input, cv::Mat& output);
 int main()
 {
 	// Read input file (image)
-	std::string imagePath = "data/imagemedian.png";
+	std::string imagePath = "data/imagebilateral.png";
 	cv::Mat input = cv::imread(imagePath,0);
 	if(input.empty()) {
 		std::cout<<"Could not load image. Check location and try again."<<std::endl;
@@ -53,7 +53,9 @@ int main()
 	std::cout << "CPU Accelerated Median Filter took " << running_sum/(attempts-1) << " ms.\n";	
 
 	cv::imshow("(MF) Output Image - GPU",output_gpu);
+	cv::imwrite("gpu_median_result.png",output_gpu);
 	cv::imshow("(MF) Output Image - CPU",output_cpu);
+	cv::imwrite("cpu_median_result.png",output_cpu);
 
 	// ------------- BILATERAL FILTER --------------
 	running_sum = 0.0;
@@ -76,7 +78,9 @@ int main()
 	std::cout << "CPU Accelerated Bilateral Filter took " << running_sum/(attempts-1) << " ms.\n";	
 
 	cv::imshow("(BF) Output Image - GPU",output_gpu);
+	cv::imwrite("gpu_bilateral_result.png",output_gpu);
 	cv::imshow("(BF) Output Image - CPU",output_cpu);
+	cv::imwrite("cpu_bilateral_result.png",output_cpu);
 	cv::waitKey();
 
 
