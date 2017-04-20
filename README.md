@@ -61,7 +61,7 @@ OpenCV Implementation:
 
 # Performance
 
-All performance times are measured in milliseconds (Y-Axis)
+All performance times are measured in **milliseconds** (Y-Axis). Image resolution during performance analysis was (480 x 1200).
 
 ## Median Filter
 
