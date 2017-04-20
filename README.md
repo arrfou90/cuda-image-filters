@@ -13,7 +13,19 @@ This repository already contains some test data in the "/data" folder; If you wi
 
 Performance is measured over 10 attempts, and the first warm-up kernel launch is omitted in each case. You can change this by modifying the **attempts** variable in *main.cpp*;
 
+To run this code:
+
+> $ cd /path/to/repository/cuda-image-filters
+
+> $ make
+
+> $ ./build/filters_gpu
+
 # Results
+
+Window Size for both filters is 9
+Sigma1 for Bilateral filter is 50px
+Sigma2 for Bilateral filter is 50px
 
 ## Median Filter
 
@@ -43,3 +55,23 @@ CUDA Implementation:
 OpenCV Implementation:
 
 ![OpenCV Image](https://github.com/ShreyasSkandan/cuda-image-filters/blob/master/data/cpu_bilateral_result.png)
+
+
+# Performance
+
+All performance times are measured in milliseconds (Y-Axis)
+
+## Median Filter
+
+Naive Implementation
+![Median Filter Naive](https://github.com/ShreyasSkandan/cuda-image-filters/blob/master/data/image%20(2).png)
+
+Shared Memory Implementation
+![Median Filter SM](https://github.com/ShreyasSkandan/cuda-image-filters/blob/master/data/image%20(3).png)
+
+## Bilateral Filter
+
+![Bilateral Filter](https://github.com/ShreyasSkandan/cuda-image-filters/blob/master/data/image%20(4).png)
+
+If you have any questions or find any mistakes in this repository please raise an issue or contact me.
+
