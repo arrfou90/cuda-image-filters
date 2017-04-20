@@ -15,7 +15,7 @@ extern void bilateral_filter_wrapper(const cv::Mat& input, cv::Mat& output);
 int main()
 {
 	// Read input file (image)
-	std::string imagePath = "data/image.png";
+	std::string imagePath = "data/imagemedian.png";
 	cv::Mat input = cv::imread(imagePath,0);
 	if(input.empty()) {
 		std::cout<<"Could not load image. Check location and try again."<<std::endl;
@@ -27,8 +27,8 @@ int main()
 	int attempts = 10;
 
 	cv::Size resize_size;
-	resize_size.width = 480;
-	resize_size.height = 1200;
+	resize_size.width = 960;
+	resize_size.height = 800;
 	cv::resize(input,input,resize_size);
 	cv::Mat output_gpu(input.rows,input.cols,CV_8UC1);
 	cv::Mat output_cpu(input.rows,input.cols,CV_8UC1);	

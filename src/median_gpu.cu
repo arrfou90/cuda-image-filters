@@ -210,7 +210,7 @@ void median_filter_wrapper(const cv::Mat& input, cv::Mat& output)
 	const dim3 block(BLOCKDIM,BLOCKDIM);
 	const dim3 grid(input.cols/BLOCKDIM, input.rows/BLOCKDIM);
 
-	median_filter_2d_sm<<<grid,block>>>(d_input,d_output,input.cols,input.rows);
+	median_filter_2d<<<grid,block>>>(d_input,d_output,input.cols,input.rows);
 
 	cudaStatus = cudaDeviceSynchronize();
 	checkCudaErrors(cudaStatus);	
